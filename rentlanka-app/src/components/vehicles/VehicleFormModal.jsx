@@ -34,11 +34,17 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
     const onSubmit = async (data) => {
         setSubmitting(true);
         try {
+            const payload = { 
+                ...data, 
+                year: parseInt(data.year), 
+                pricePerDay: parseFloat(data.pricePerDay), 
+                seats: parseInt(data.seats) 
+            };
             if (vehicle) {
-                await vehiclesApi.update(vehicle.id, data);
+                await vehiclesApi.update(vehicle.id, payload);
                 toast.success("Vehicle updated successfully");
             } else {
-                await vehiclesApi.create(data);
+                await vehiclesApi.create(payload);
                 toast.success("Vehicle listed successfully");
             }
             onSuccess();
