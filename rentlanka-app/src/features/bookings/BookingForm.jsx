@@ -17,7 +17,7 @@ export const BookingForm = () => {
 
     const { data, isLoading: vehicleLoading } = useQuery({
         queryKey: ["vehicle", vehicleId],
-        queryFn: () => vehiclesApi.getVehicle(vehicleId).then((r) => r.data),
+        queryFn: () => vehiclesApi.getById(vehicleId).then((r) => r.data),
         enabled: !!vehicleId,
     });
 
