@@ -19,13 +19,16 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
                     seats: vehicle.seats || 4,
                     transmission: vehicle.transmission || 'Automatic',
                     fuelType: vehicle.fuelType || 'Petrol',
-                    description: vehicle.description || ''
+                    description: vehicle.description || '',
+                    spatialUnitId: vehicle.spatialUnitId || null,
+                    latitude: vehicle.latitude || null,
+                    longitude: vehicle.longitude || null
                 });
             } else {
                 reset({
                     brand: '', model: '', year: new Date().getFullYear(),
                     vehicleType: 'CAR', pricePerDay: '', seats: 4,
-                    transmission: 'Automatic', fuelType: 'Petrol', description: ''
+                    transmission: 'Automatic', fuelType: 'Petrol', description: '', spatialUnitId: null, latitude: null, longitude: null
                 });
             }
         }
@@ -143,3 +146,5 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
         </div>
     );
 };
+
+
