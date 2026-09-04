@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { bookingsApi, vehiclesApi } from "../../api/endpoints";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -10,6 +10,7 @@ import { useAuth } from "../../context/AuthContext";
 export const BookingForm = () => {
     const { id: vehicleId } = useParams();
     const navigate = useNavigate();
+    const queryClient = useQueryClient();
     const { isAuthenticated } = useAuth();
     const [startDate, setStartDate] = useState(null);
     const [endDate, setEndDate] = useState(null);
@@ -52,6 +53,8 @@ export const BookingForm = () => {
                 endDate: endDate.toISOString(),
             });
             toast.success("Booking created successfully!");
+            queryClient.invalidateQueries(["myBookings"]);
+            queryClient.invalidateQueries(["adminBookings"]);
             navigate("/bookings");
         } catch (error) {
             toast.error(error.response?.data?.title || "Failed to create booking");
