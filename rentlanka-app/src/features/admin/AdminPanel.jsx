@@ -118,12 +118,105 @@ export const AdminPanel = () => {
                                         </td>
                                     </tr>
                                 ))}
+                                {users.length === 0 && (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-8 text-center text-slate-400">No users found.</td>
+                                    </tr>
+                                )}
                             </tbody>
                         </table>
                     </div>
                 )}
                 
-                {/* Vehicles & Bookings tables are similarly styled, skipped here for brevity but assuming they adopt the same table class layout as users */}
+                {activeTab === 'vehicles' && (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-slate-400 uppercase bg-slate-900/80 border-b border-slate-800">
+                                <tr>
+                                    <th className="px-6 py-4 font-semibold">Vehicle</th>
+                                    <th className="px-6 py-4 font-semibold">Owner</th>
+                                    <th className="px-6 py-4 font-semibold">Price/Day</th>
+                                    <th className="px-6 py-4 font-semibold">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/60">
+                                {vehicles.map((vehicle) => (
+                                    <tr key={vehicle.id} className="hover:bg-slate-800/30 transition-colors">
+                                        <td className="px-6 py-4">
+                                            <div className="font-bold text-white">{vehicle.brand} {vehicle.model}</div>
+                                            <div className="text-slate-400">{vehicle.year} • {vehicle.vehicleType}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-300">
+                                            {vehicle.owner?.name || `ID: ${vehicle.ownerId}`}
+                                        </td>
+                                        <td className="px-6 py-4 text-emerald-400 font-medium">
+                                            LKR {vehicle.pricePerDay}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                                vehicle.status === 'AVAILABLE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
+                                            }`}>
+                                                {vehicle.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {vehicles.length === 0 && (
+                                    <tr>
+                                        <td colSpan="4" className="px-6 py-8 text-center text-slate-400">No vehicles listed yet.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
+
+                {activeTab === 'bookings' && (
+                    <div className="overflow-x-auto">
+                        <table className="w-full text-sm text-left">
+                            <thead className="text-xs text-slate-400 uppercase bg-slate-900/80 border-b border-slate-800">
+                                <tr>
+                                    <th className="px-6 py-4 font-semibold">Booking ID</th>
+                                    <th className="px-6 py-4 font-semibold">Vehicle</th>
+                                    <th className="px-6 py-4 font-semibold">Customer</th>
+                                    <th className="px-6 py-4 font-semibold">Dates</th>
+                                    <th className="px-6 py-4 font-semibold">Status</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-800/60">
+                                {bookings.map((booking) => (
+                                    <tr key={booking.id} className="hover:bg-slate-800/30 transition-colors">
+                                        <td className="px-6 py-4 font-mono text-slate-400">#{booking.id}</td>
+                                        <td className="px-6 py-4">
+                                            <div className="font-bold text-white">{booking.vehicle?.brand} {booking.vehicle?.model}</div>
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-300">
+                                            {booking.customer?.name || `ID: ${booking.customerId}`}
+                                        </td>
+                                        <td className="px-6 py-4 text-slate-400 text-xs">
+                                            {new Date(booking.startDate).toLocaleDateString()} - <br/>
+                                            {new Date(booking.endDate).toLocaleDateString()}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
+                                                booking.status === 'PENDING' ? 'bg-blue-500/20 text-blue-400' :
+                                                booking.status === 'CONFIRMED' ? 'bg-emerald-500/20 text-emerald-400' :
+                                                'bg-red-500/20 text-red-400'
+                                            }`}>
+                                                {booking.status}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                ))}
+                                {bookings.length === 0 && (
+                                    <tr>
+                                        <td colSpan="5" className="px-6 py-8 text-center text-slate-400">No bookings exist yet.</td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                )}
             </div>
         </div>
     );
