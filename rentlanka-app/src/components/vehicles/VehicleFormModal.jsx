@@ -1,11 +1,13 @@
 import { useState, useEffect } from "react";
 import { useForm } from "react-hook-form";
-import { vehiclesApi } from "../../api/endpoints";
+import { vehiclesApi, spatialApi } from "../../api/endpoints";
+import { SpatialUnitSearch } from "../common/SpatialUnitSearch";
 import toast from "react-hot-toast";
 
 export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess }) => {
-    const { register, handleSubmit, reset, formState: { errors } } = useForm();
+    const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
     const [submitting, setSubmitting] = useState(false);
+    const [selectedLocation, setSelectedLocation] = useState(null);
 
     useEffect(() => {
         if (isOpen) {
@@ -24,15 +26,32 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
                     latitude: vehicle.latitude || null,
                     longitude: vehicle.longitude || null
                 });
+
+                if (vehicle.spatialUnitId) {
+                    spatialApi.getById(vehicle.spatialUnitId).then(res => {
+                        setSelectedLocation(res.data);
+                    }).catch(console.error);
+                } else {
+                    setSelectedLocation(null);
+                }
             } else {
                 reset({
                     brand: '', model: '', year: new Date().getFullYear(),
                     vehicleType: 'CAR', pricePerDay: '', seats: 4,
-                    transmission: 'Automatic', fuelType: 'Petrol', description: '', spatialUnitId: null, latitude: null, longitude: null
+                    transmission: 'Automatic', fuelType: 'Petrol', description: '',
+                    spatialUnitId: null, latitude: null, longitude: null
                 });
+                setSelectedLocation(null);
             }
         }
     }, [isOpen, vehicle, reset]);
+
+    const handleLocationSelect = (unit) => {
+        setSelectedLocation(unit);
+        setValue('spatialUnitId', unit ? unit.id : null);
+        setValue('latitude', unit ? unit.latitude : null);
+        setValue('longitude', unit ? unit.longitude : null);
+    };
 
     const onSubmit = async (data) => {
         setSubmitting(true);
@@ -62,13 +81,13 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
     if (!isOpen) return null;
 
     return (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
             <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
                 <div className="px-6 py-4 border-b border-slate-800 flex justify-between items-center bg-slate-900/50">
                     <h3 className="text-xl font-bold text-white">
                         {vehicle ? 'Edit Vehicle' : 'List a New Vehicle'}
                     </h3>
-                    <button onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
+                    <button type="button" onClick={onClose} className="text-slate-400 hover:text-white transition-colors">
                         <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12"></path></svg>
                     </button>
                 </div>
@@ -122,6 +141,16 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
                                 </select>
                             </div>
                         </div>
+
+                        <div className="mt-2">
+                            <label className="block text-sm font-medium text-slate-400 mb-1">Location</label>
+                            <SpatialUnitSearch 
+                                selectedUnit={selectedLocation}
+                                onSelect={handleLocationSelect}
+                                placeholder="Search District or Division..."
+                            />
+                        </div>
+
                         <div>
                             <label className="block text-sm font-medium text-slate-400 mb-1">Description</label>
                             <textarea {...register("description")} className="input-field h-24 resize-none" placeholder="Vehicle details..."></textarea>
@@ -146,5 +175,3 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
         </div>
     );
 };
-
-

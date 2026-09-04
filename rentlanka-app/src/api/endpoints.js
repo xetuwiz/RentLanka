@@ -53,6 +53,7 @@ export const authApi = {
 
 export const spatialApi = {
     getProvinces: () => api.get('/spatial/provinces'),
+    getById: (id) => api.get(/spatial/),
     getChildren: (id) => api.get(`/spatial/${id}/children`),
     search: (q) => api.get('/spatial/search', { params: { q } })
 };
@@ -91,3 +92,4 @@ export const adminApi = {
     getBookings: () => api.get('/admin/bookings'),
     deleteBooking: (id) => api.delete(`/admin/bookings/${id}`)
 };
+
