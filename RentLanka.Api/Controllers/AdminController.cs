@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RentLanka.Api.Services;
+using RentLanka.Api.Dtos;
 
 namespace RentLanka.Api.Controllers;
 
@@ -23,6 +24,14 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> GetUsers() => Ok(await _adminService.GetUsersAsync());
 
     [HttpPatch("users/{id}/status")]
+    [HttpPut("users/{id:int}")]
+    public async Task<IActionResult> UpdateUser(int id, [FromBody] UpdateUserDto dto)
+    {
+        try { await _adminService.UpdateUserAsync(id, dto); return NoContent(); }
+        catch (KeyNotFoundException) { return NotFound(new { title = "User not found" }); }
+    }
+
+    [HttpPatch("users/{id:int}/status")]
     public async Task<IActionResult> ToggleUserStatus(int id)
     {
         try
@@ -56,6 +65,7 @@ public class AdminController : ControllerBase
         catch (KeyNotFoundException) { return NotFound(); }
     }
 }
+
 
 
 

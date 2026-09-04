@@ -86,10 +86,12 @@ export const ownerApi = {
 export const adminApi = {
     getDashboard: () => api.get('/admin/dashboard'),
     getUsers: () => api.get('/admin/users'),
-    toggleUserStatus: (id) => api.patch(`/admin/users/${id}/status`),
+    toggleUserStatus: (id) => api.patch(/admin/users//status),
+    updateUser: (id, data) => api.put(/admin/users/, data),
     deleteUser: (id) => api.delete(`/admin/users/${id}`),
     getVehicles: () => api.get('/admin/vehicles'),
     getBookings: () => api.get('/admin/bookings'),
     deleteBooking: (id) => api.delete(`/admin/bookings/${id}`)
 };
+
 

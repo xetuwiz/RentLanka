@@ -26,3 +26,9 @@ public record AuthResponseDto(
     string Email,
     string Role
 );
+
+public record UpdateUserDto(
+    [Required] string Name,
+    string? Phone,
+    string? Role
+);

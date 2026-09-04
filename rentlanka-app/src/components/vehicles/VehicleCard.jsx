@@ -36,6 +36,12 @@ export const VehicleCard = ({ vehicle }) => {
                         <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
                         <span>{vehicle.transmission}</span>
                     </div>
+                    {vehicle.spatialUnitName && (
+                        <div className="flex items-center gap-1.5">
+                            <svg className="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"></path><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                            <span className="truncate max-w-[80px]" title={vehicle.spatialUnitName}>{vehicle.spatialUnitName}</span>
+                        </div>
+                    )}
                 </div>
 
                 <div className="mt-auto pt-4 border-t border-slate-800/60 flex items-center justify-between">
@@ -59,3 +65,5 @@ export const VehicleCard = ({ vehicle }) => {
         </div>
     );
 };
+
+

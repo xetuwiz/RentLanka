@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using RentLanka.Api.Data;
 using RentLanka.Api.Models;
+using RentLanka.Api.Dtos;
 
 namespace RentLanka.Api.Services;
 
@@ -31,6 +32,16 @@ public class AdminService : IAdminService
         var user = await _db.Users.FindAsync(userId);
         if (user == null) throw new KeyNotFoundException("User not found");
         user.Active = !user.Active;
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task UpdateUserAsync(int userId, UpdateUserDto dto)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) throw new KeyNotFoundException("User not found");
+        user.Name = dto.Name;
+        user.Phone = dto.Phone;
+        user.Role = dto.Role ?? user.Role;
         await _db.SaveChangesAsync();
     }
 
@@ -73,6 +84,7 @@ public class AdminService : IAdminService
             .ToListAsync();
     }
 }
+
 
 
 

@@ -28,7 +28,12 @@ public record VehicleResponseDto(
     decimal? Latitude,
     decimal? Longitude,
     string OwnerName,
-    int? SpatialUnitId
+    int? SpatialUnitId,
+    int? Seats,
+    string? Transmission,
+    string? FuelType,
+    string? Description,
+    string? SpatialUnitName
 );
 
 public record VehicleSearchRequest(

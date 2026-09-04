@@ -17,7 +17,7 @@ public class VehicleService : IVehicleService
     public async Task<IEnumerable<VehicleResponseDto>> GetAllAsync()
     {
         var vehicles = await _db.Vehicles
-            .Include(v => v.Owner)
+            .Include(v => v.Owner).Include(v => v.SpatialUnit)
             .OrderByDescending(v => v.CreatedAt)
             .ToListAsync();
         return vehicles.Select(MapToDto);
@@ -26,7 +26,7 @@ public class VehicleService : IVehicleService
     public async Task<VehicleResponseDto> GetByIdAsync(int id)
     {
         var vehicle = await _db.Vehicles
-            .Include(v => v.Owner)
+            .Include(v => v.Owner).Include(v => v.SpatialUnit)
             .FirstOrDefaultAsync(v => v.Id == id);
         if (vehicle == null) throw new KeyNotFoundException("Vehicle not found");
         return MapToDto(vehicle);
@@ -34,7 +34,7 @@ public class VehicleService : IVehicleService
 
     public async Task<IEnumerable<VehicleResponseDto>> SearchAsync(VehicleSearchRequest request)
     {
-        var query = _db.Vehicles.Include(v => v.Owner).AsQueryable();
+        var query = _db.Vehicles.Include(v => v.Owner).Include(v => v.SpatialUnit).AsQueryable();
 
         if (request.SpatialUnitId.HasValue)
             query = query.Where(v => v.SpatialUnitId == request.SpatialUnitId);
@@ -54,7 +54,7 @@ public class VehicleService : IVehicleService
         // Load AVAILABLE vehicles with coordinates then filter with Haversine in memory
         var vehicles = await _db.Vehicles
             .Where(v => v.Status == "AVAILABLE" && v.Latitude.HasValue && v.Longitude.HasValue)
-            .Include(v => v.Owner)
+            .Include(v => v.Owner).Include(v => v.SpatialUnit)
             .ToListAsync();
 
         return vehicles
@@ -96,7 +96,7 @@ public class VehicleService : IVehicleService
     public async Task<VehicleResponseDto> UpdateAsync(int id, VehicleRequestDto dto, int userId)
     {
         var vehicle = await _db.Vehicles
-            .Include(v => v.Owner)
+            .Include(v => v.Owner).Include(v => v.SpatialUnit)
             .FirstOrDefaultAsync(v => v.Id == id);
         if (vehicle == null) throw new KeyNotFoundException("Vehicle not found");
 
@@ -156,7 +156,7 @@ public class VehicleService : IVehicleService
     {
         var vehicles = await _db.Vehicles
             .Where(v => v.OwnerId == ownerId)
-            .Include(v => v.Owner)
+            .Include(v => v.Owner).Include(v => v.SpatialUnit)
             .OrderByDescending(v => v.CreatedAt)
             .ToListAsync();
         return vehicles.Select(MapToDto);
@@ -175,7 +175,12 @@ public class VehicleService : IVehicleService
         v.Latitude,
         v.Longitude,
         v.Owner?.Name ?? "Unknown",
-        v.SpatialUnitId
+        v.SpatialUnitId,
+        v.Seats,
+        v.Transmission,
+        v.FuelType,
+        v.Description,
+        v.SpatialUnit?.Name
     );
 
     private static double Haversine(double lat1, double lon1, double lat2, double lon2)
@@ -189,6 +194,7 @@ public class VehicleService : IVehicleService
         return R * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
     }
 }
+
 
 
 
