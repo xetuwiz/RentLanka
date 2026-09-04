@@ -122,6 +122,19 @@ public class VehicleService : IVehicleService
         return MapToDto(vehicle);
     }
 
+    public async Task DeleteAsync(int id, int userId)
+    {
+        var vehicle = await _db.Vehicles.FindAsync(id);
+        if (vehicle == null) throw new KeyNotFoundException("Vehicle not found");
+
+        var requestingUser = await _db.Users.FindAsync(userId);
+        if (vehicle.OwnerId != userId && requestingUser?.Role != "ADMIN")
+            throw new UnauthorizedAccessException("You do not own this vehicle");
+
+        _db.Vehicles.Remove(vehicle);
+        await _db.SaveChangesAsync();
+    }
+
     public async Task UpdateStatusAsync(int id, string status, int userId)
     {
         var vehicle = await _db.Vehicles.FindAsync(id);
@@ -173,3 +186,4 @@ public class VehicleService : IVehicleService
         return R * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
     }
 }
+

@@ -11,5 +11,6 @@ public interface IVehicleService
     Task<VehicleResponseDto> CreateAsync(VehicleRequestDto dto, int ownerId);
     Task<VehicleResponseDto> UpdateAsync(int id, VehicleRequestDto dto, int userId);
     Task UpdateStatusAsync(int id, string status, int userId);
+    Task DeleteAsync(int id, int userId);
     Task<IEnumerable<VehicleResponseDto>> GetOwnerVehiclesAsync(int ownerId);
 }

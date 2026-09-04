@@ -42,3 +42,4 @@ public class AdminController : ControllerBase
     [HttpGet("bookings")]
     public async Task<IActionResult> GetBookings() => Ok(await _adminService.GetBookingsAsync());
 }
+

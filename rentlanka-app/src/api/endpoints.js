@@ -17,7 +17,7 @@ api.interceptors.request.use(
     error => Promise.reject(error)
 );
 
-// Response interceptor – refresh token on 401
+// Response interceptor - refresh token on 401
 api.interceptors.response.use(
     response => response,
     async error => {
@@ -64,7 +64,8 @@ export const vehiclesApi = {
     nearby: (lat, lng, radius) => api.get('/vehicles/nearby', { params: { lat, lng, radius } }),
     create: (data) => api.post('/vehicles', data),
     update: (id, data) => api.put(`/vehicles/${id}`, data),
-    updateStatus: (id, status) => api.patch(`/vehicles/${id}/status`, { status })
+    updateStatus: (id, status) => api.patch(`/vehicles/${id}/status`, { status }),
+    delete: (id) => api.delete(`/vehicles/${id}`)
 };
 
 export const bookingsApi = {
@@ -85,6 +86,8 @@ export const adminApi = {
     getDashboard: () => api.get('/admin/dashboard'),
     getUsers: () => api.get('/admin/users'),
     toggleUserStatus: (id) => api.patch(`/admin/users/${id}/status`),
+    deleteUser: (id) => api.delete(`/admin/users/${id}`),
     getVehicles: () => api.get('/admin/vehicles'),
-    getBookings: () => api.get('/admin/bookings')
+    getBookings: () => api.get('/admin/bookings'),
+    deleteBooking: (id) => api.delete(`/admin/bookings/${id}`)
 };

@@ -1,10 +1,13 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { adminApi } from '../../api/endpoints';
+import { adminApi, vehiclesApi } from '../../api/endpoints';
+import { VehicleFormModal } from '../../components/vehicles/VehicleFormModal';
 import toast from 'react-hot-toast';
 
 export const AdminPanel = () => {
     const [activeTab, setActiveTab] = useState('users');
+    const [isModalOpen, setIsModalOpen] = useState(false);
+    const [editingVehicle, setEditingVehicle] = useState(null);
     const queryClient = useQueryClient();
 
     const { data: usersData, isLoading: usersLoading } = useQuery({ queryKey: ['adminUsers'], queryFn: adminApi.getUsers });
@@ -14,13 +17,34 @@ export const AdminPanel = () => {
 
     const toggleUserMutation = useMutation({
         mutationFn: adminApi.toggleUserStatus,
-        onSuccess: () => {
-            toast.success('User status updated');
-            queryClient.invalidateQueries(['adminUsers']);
-            queryClient.invalidateQueries(['adminDashboard']);
-        },
+        onSuccess: () => { toast.success('User status updated'); queryClient.invalidateQueries(['adminUsers']); queryClient.invalidateQueries(['adminDashboard']); },
         onError: () => toast.error('Failed to update status')
     });
+
+    const deleteUserMutation = useMutation({
+        mutationFn: adminApi.deleteUser,
+        onSuccess: () => { toast.success('User deleted'); queryClient.invalidateQueries(['adminUsers']); queryClient.invalidateQueries(['adminDashboard']); },
+        onError: () => toast.error('Failed to delete user')
+    });
+
+    const deleteVehicleMutation = useMutation({
+        mutationFn: vehiclesApi.delete,
+        onSuccess: () => { toast.success('Vehicle deleted'); queryClient.invalidateQueries(['adminVehicles']); queryClient.invalidateQueries(['adminDashboard']); },
+        onError: () => toast.error('Failed to delete vehicle')
+    });
+
+    const deleteBookingMutation = useMutation({
+        mutationFn: adminApi.deleteBooking,
+        onSuccess: () => { toast.success('Booking deleted'); queryClient.invalidateQueries(['adminBookings']); queryClient.invalidateQueries(['adminDashboard']); },
+        onError: () => toast.error('Failed to delete booking')
+    });
+
+    const handleDelete = (type, id) => {
+        if (!window.confirm(`Are you sure you want to permanently delete this ${type}? This action cannot be undone.`)) return;
+        if (type === 'user') deleteUserMutation.mutate(id);
+        if (type === 'vehicle') deleteVehicleMutation.mutate(id);
+        if (type === 'booking') deleteBookingMutation.mutate(id);
+    };
 
     const users = usersData?.data || [];
     const vehicles = vehiclesData?.data || [];
@@ -40,26 +64,21 @@ export const AdminPanel = () => {
                 </div>
             </div>
 
-            {/* Dashboard Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
                 <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10"><svg className="w-16 h-16 text-blue-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 6a3 3 0 11-6 0 3 3 0 016 0zM17 6a3 3 0 11-6 0 3 3 0 016 0zM12.93 17c.046-.327.07-.66.07-1a6.97 6.97 0 00-1.5-4.33A5 5 0 0119 16v1h-6.07zM6 11a5 5 0 015 5v1H1v-1a5 5 0 015-5z"></path></svg></div>
                     <p className="text-slate-400 text-sm font-semibold uppercase tracking-wider">Total Users</p>
                     <p className="text-4xl font-black text-white mt-2">{dashboard.userCount || 0}</p>
                 </div>
                 <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10"><svg className="w-16 h-16 text-indigo-500" fill="currentColor" viewBox="0 0 20 20"><path d="M8 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zM15 16.5a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0z"></path><path d="M3 4l1-1h12l1 1v3.5l3 4.5v5h-2v1h-2v-1H6v1H4v-1H2v-5l3-4.5V4z"></path></svg></div>
                     <p className="text-slate-400 text-sm font-semibold uppercase tracking-wider">Total Vehicles</p>
                     <p className="text-4xl font-black text-white mt-2">{dashboard.vehicleCount || 0}</p>
                 </div>
                 <div className="bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-4 opacity-10"><svg className="w-16 h-16 text-emerald-500" fill="currentColor" viewBox="0 0 20 20"><path d="M9 2a1 1 0 000 2h2a1 1 0 100-2H9z"></path><path fillRule="evenodd" d="M4 5a2 2 0 012-2 3 3 0 003 3h2a3 3 0 003-3 2 2 0 012 2v11a2 2 0 01-2 2H6a2 2 0 01-2-2V5zm3 4a1 1 0 000 2h.01a1 1 0 100-2H7zm3 0a1 1 0 000 2h3a1 1 0 100-2h-3zm-3 4a1 1 0 100 2h.01a1 1 0 100-2H7zm3 0a1 1 0 100 2h3a1 1 0 100-2h-3z" clipRule="evenodd"></path></svg></div>
                     <p className="text-slate-400 text-sm font-semibold uppercase tracking-wider">Total Bookings</p>
                     <p className="text-4xl font-black text-white mt-2">{dashboard.bookingCount || 0}</p>
                 </div>
             </div>
 
-            {/* Tabs */}
             <div className="flex gap-2 mb-6 bg-slate-900/50 p-1.5 rounded-xl border border-slate-800 inline-flex">
                 {['users', 'vehicles', 'bookings'].map(tab => (
                     <button
@@ -74,7 +93,6 @@ export const AdminPanel = () => {
                 ))}
             </div>
 
-            {/* Tab Contents */}
             <div className="bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden">
                 {activeTab === 'users' && (
                     <div className="overflow-x-auto">
@@ -90,39 +108,21 @@ export const AdminPanel = () => {
                             <tbody className="divide-y divide-slate-800/60">
                                 {users.map((user) => (
                                     <tr key={user.id} className="hover:bg-slate-800/30 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="font-bold text-white">{user.name}</div>
-                                            <div className="text-slate-400">{user.email}</div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="px-2.5 py-1 rounded text-xs font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/20">
-                                                {user.role}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                                                user.active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'
-                                            }`}>
-                                                {user.active ? 'Active' : 'Banned'}
-                                            </span>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <button
-                                                onClick={() => toggleUserMutation.mutate(user.id)}
-                                                className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${
-                                                    user.active ? 'bg-slate-800 text-red-400 hover:bg-slate-700' : 'bg-slate-800 text-emerald-400 hover:bg-slate-700'
-                                                }`}
-                                            >
-                                                {user.active ? 'Ban User' : 'Unban'}
-                                            </button>
+                                        <td className="px-6 py-4"><div className="font-bold text-white">{user.name}</div><div className="text-slate-400">{user.email}</div></td>
+                                        <td className="px-6 py-4"><span className="px-2.5 py-1 rounded text-xs font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/20">{user.role}</span></td>
+                                        <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${user.active ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'}`}>{user.active ? 'Active' : 'Banned'}</span></td>
+                                        <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                            {user.role !== 'ADMIN' && (
+                                                <>
+                                                    <button onClick={() => toggleUserMutation.mutate(user.id)} className={`px-3 py-1.5 text-xs font-bold rounded-md transition-colors ${user.active ? 'bg-slate-800 text-orange-400 hover:bg-slate-700' : 'bg-slate-800 text-emerald-400 hover:bg-slate-700'}`}>
+                                                        {user.active ? 'Ban' : 'Unban'}
+                                                    </button>
+                                                    <button onClick={() => handleDelete('user', user.id)} className="px-3 py-1.5 text-xs font-bold rounded-md transition-colors bg-red-500/10 text-red-400 hover:bg-red-500/20">Delete</button>
+                                                </>
+                                            )}
                                         </td>
                                     </tr>
                                 ))}
-                                {users.length === 0 && (
-                                    <tr>
-                                        <td colSpan="4" className="px-6 py-8 text-center text-slate-400">No users found.</td>
-                                    </tr>
-                                )}
                             </tbody>
                         </table>
                     </div>
@@ -137,35 +137,22 @@ export const AdminPanel = () => {
                                     <th className="px-6 py-4 font-semibold">Owner</th>
                                     <th className="px-6 py-4 font-semibold">Price/Day</th>
                                     <th className="px-6 py-4 font-semibold">Status</th>
+                                    <th className="px-6 py-4 font-semibold text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-800/60">
                                 {vehicles.map((vehicle) => (
                                     <tr key={vehicle.id} className="hover:bg-slate-800/30 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="font-bold text-white">{vehicle.brand} {vehicle.model}</div>
-                                            <div className="text-slate-400">{vehicle.year} • {vehicle.vehicleType}</div>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-300">
-                                            {vehicle.owner?.name || `ID: ${vehicle.ownerId}`}
-                                        </td>
-                                        <td className="px-6 py-4 text-emerald-400 font-medium">
-                                            LKR {vehicle.pricePerDay}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                                                vehicle.status === 'AVAILABLE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'
-                                            }`}>
-                                                {vehicle.status}
-                                            </span>
+                                        <td className="px-6 py-4"><div className="font-bold text-white">{vehicle.brand} {vehicle.model}</div><div className="text-slate-400">{vehicle.year} • {vehicle.vehicleType}</div></td>
+                                        <td className="px-6 py-4 text-slate-300">{vehicle.owner?.name || `ID: ${vehicle.ownerId}`}</td>
+                                        <td className="px-6 py-4 text-emerald-400 font-medium">LKR {vehicle.pricePerDay}</td>
+                                        <td className="px-6 py-4"><span className={`px-2.5 py-1 rounded-full text-xs font-bold ${vehicle.status === 'AVAILABLE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-amber-500/20 text-amber-400'}`}>{vehicle.status}</span></td>
+                                        <td className="px-6 py-4 text-right flex justify-end gap-2">
+                                            <button onClick={() => { setEditingVehicle(vehicle); setIsModalOpen(true); }} className="px-3 py-1.5 text-xs font-bold rounded-md bg-slate-800 text-blue-400 hover:bg-slate-700">Edit</button>
+                                            <button onClick={() => handleDelete('vehicle', vehicle.id)} className="px-3 py-1.5 text-xs font-bold rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20">Delete</button>
                                         </td>
                                     </tr>
                                 ))}
-                                {vehicles.length === 0 && (
-                                    <tr>
-                                        <td colSpan="4" className="px-6 py-8 text-center text-slate-400">No vehicles listed yet.</td>
-                                    </tr>
-                                )}
                             </tbody>
                         </table>
                     </div>
@@ -180,44 +167,33 @@ export const AdminPanel = () => {
                                     <th className="px-6 py-4 font-semibold">Vehicle</th>
                                     <th className="px-6 py-4 font-semibold">Customer</th>
                                     <th className="px-6 py-4 font-semibold">Dates</th>
-                                    <th className="px-6 py-4 font-semibold">Status</th>
+                                    <th className="px-6 py-4 font-semibold text-right">Actions</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-800/60">
                                 {bookings.map((booking) => (
                                     <tr key={booking.id} className="hover:bg-slate-800/30 transition-colors">
                                         <td className="px-6 py-4 font-mono text-slate-400">#{booking.id}</td>
-                                        <td className="px-6 py-4">
-                                            <div className="font-bold text-white">{booking.vehicle?.brand} {booking.vehicle?.model}</div>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-300">
-                                            {booking.customer?.name || `ID: ${booking.customerId}`}
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-400 text-xs">
-                                            {new Date(booking.startDate).toLocaleDateString()} - <br/>
-                                            {new Date(booking.endDate).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                                                booking.status === 'PENDING' ? 'bg-blue-500/20 text-blue-400' :
-                                                booking.status === 'CONFIRMED' ? 'bg-emerald-500/20 text-emerald-400' :
-                                                'bg-red-500/20 text-red-400'
-                                            }`}>
-                                                {booking.status}
-                                            </span>
+                                        <td className="px-6 py-4"><div className="font-bold text-white">{booking.vehicle?.brand} {booking.vehicle?.model}</div></td>
+                                        <td className="px-6 py-4 text-slate-300">{booking.customer?.name || `ID: ${booking.customerId}`}</td>
+                                        <td className="px-6 py-4 text-slate-400 text-xs">{new Date(booking.startDate).toLocaleDateString()} - <br/>{new Date(booking.endDate).toLocaleDateString()}</td>
+                                        <td className="px-6 py-4 text-right">
+                                            <button onClick={() => handleDelete('booking', booking.id)} className="px-3 py-1.5 text-xs font-bold rounded-md bg-red-500/10 text-red-400 hover:bg-red-500/20">Delete</button>
                                         </td>
                                     </tr>
                                 ))}
-                                {bookings.length === 0 && (
-                                    <tr>
-                                        <td colSpan="5" className="px-6 py-8 text-center text-slate-400">No bookings exist yet.</td>
-                                    </tr>
-                                )}
                             </tbody>
                         </table>
                     </div>
                 )}
             </div>
+
+            <VehicleFormModal 
+                isOpen={isModalOpen} 
+                onClose={() => setIsModalOpen(false)} 
+                vehicle={editingVehicle}
+                onSuccess={() => queryClient.invalidateQueries(['adminVehicles'])} 
+            />
         </div>
     );
 };

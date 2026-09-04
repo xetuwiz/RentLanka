@@ -34,6 +34,22 @@ public class AdminService : IAdminService
         await _db.SaveChangesAsync();
     }
 
+    public async Task DeleteUserAsync(int userId)
+    {
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) throw new KeyNotFoundException("User not found");
+        _db.Users.Remove(user);
+        await _db.SaveChangesAsync();
+    }
+
+    public async Task DeleteBookingAsync(int bookingId)
+    {
+        var booking = await _db.Bookings.FindAsync(bookingId);
+        if (booking == null) throw new KeyNotFoundException("Booking not found");
+        _db.Bookings.Remove(booking);
+        await _db.SaveChangesAsync();
+    }
+
     public async Task<IEnumerable<Vehicle>> GetVehiclesAsync()
     {
         return await _db.Vehicles.Include(v => v.Owner).ToListAsync();
@@ -47,3 +63,4 @@ public class AdminService : IAdminService
             .ToListAsync();
     }
 }
+
