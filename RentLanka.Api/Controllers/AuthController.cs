@@ -1,9 +1,13 @@
+using System.IdentityModel.Tokens.Jwt;
+using System.Security.Claims;
+using System.Security.Cryptography;
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using RentLanka.Api.Data;
 using RentLanka.Api.Dtos;
 using RentLanka.Api.Models;
-using RentLanka.Api.Services;
 
 namespace RentLanka.Api.Controllers;
 
@@ -12,50 +16,27 @@ namespace RentLanka.Api.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly AppDbContext _db;
-    private readonly JwtService _jwtService;
+    private readonly IConfiguration _config;
 
-    public AuthController(
-        AppDbContext db,
-        JwtService jwtService)
+    public AuthController(AppDbContext db, IConfiguration config)
     {
         _db = db;
-        _jwtService = jwtService;
+        _config = config;
     }
 
     [HttpPost("register")]
-    public async Task<IActionResult> Register(RegisterDto dto)
+    public async Task<IActionResult> Register([FromBody] RegisterDto dto)
     {
-        if (string.IsNullOrWhiteSpace(dto.Name))
-            return BadRequest(new { message = "Name is required." });
-
-        if (string.IsNullOrWhiteSpace(dto.Email))
-            return BadRequest(new { message = "Email is required." });
-
-        if (string.IsNullOrWhiteSpace(dto.Password))
-            return BadRequest(new { message = "Password is required." });
-
-        if (dto.Password.Length < 6)
-            return BadRequest(new { message = "Password must be at least 6 characters." });
-
-        var email = dto.Email.Trim().ToLower();
-
-        var existingUser = await _db.Users
-            .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
-
-        if (existingUser != null)
-            return Conflict(new { message = "An account with this email already exists." });
-
-        var role = dto.Role?.ToUpper() == "OWNER"
-            ? "OWNER"
-            : "CUSTOMER";
+        if (await _db.Users.AnyAsync(u => u.Email == dto.Email))
+            return Conflict(new { title = "Email already registered" });
 
         var user = new User
         {
-            Name = dto.Name.Trim(),
-            Email = email,
+            Name = dto.Name,
+            Email = dto.Email,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.Password),
-            Phone = dto.Phone?.Trim() ?? "",
-            Role = role,
+            Phone = dto.Phone ?? string.Empty,
+            Role = dto.Role ?? "CUSTOMER",
             Active = true,
             CreatedAt = DateTime.UtcNow
         };
@@ -63,103 +44,87 @@ public class AuthController : ControllerBase
         _db.Users.Add(user);
         await _db.SaveChangesAsync();
 
-        var token = _jwtService.GenerateToken(user);
-        var refreshToken = _jwtService.GenerateRefreshToken();
-
+        var (accessToken, refreshToken) = GenerateTokens(user);
         user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
         await _db.SaveChangesAsync();
 
-        return Ok(new AuthResponseDto
-        {
-            Id = user.Id,
-            Name = user.Name,
-            Email = user.Email,
-            Role = user.Role,
-            Token = token,
-            RefreshToken = refreshToken
-        });
+        return CreatedAtAction(nameof(Register), new { id = user.Id }, new AuthResponseDto(
+            accessToken, refreshToken, user.Id, user.Name, user.Email, user.Role
+        ));
     }
 
     [HttpPost("login")]
-    public async Task<IActionResult> Login(LoginDto dto)
+    public async Task<IActionResult> Login([FromBody] LoginDto dto)
     {
-        var email = dto.Email.Trim().ToLower();
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.Email == dto.Email);
+        if (user == null || !BCrypt.Net.BCrypt.Verify(dto.Password, user.PasswordHash))
+            return Unauthorized(new { title = "Invalid email or password" });
 
-        var user = await _db.Users
-            .FirstOrDefaultAsync(u => u.Email.ToLower() == email);
-
-        if (user == null)
-            return Unauthorized(new { message = "Invalid email or password." });
-
-        if (!user.Active)
-            return Unauthorized(new { message = "Your account is inactive." });
-
-        var passwordValid = BCrypt.Net.BCrypt.Verify(
-            dto.Password,
-            user.PasswordHash);
-
-        if (!passwordValid)
-            return Unauthorized(new { message = "Invalid email or password." });
-
-        var token = _jwtService.GenerateToken(user);
-        var refreshToken = _jwtService.GenerateRefreshToken();
-
+        var (accessToken, refreshToken) = GenerateTokens(user);
         user.RefreshToken = refreshToken;
+        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
         await _db.SaveChangesAsync();
 
-        return Ok(new AuthResponseDto
-        {
-            Id = user.Id,
-            Name = user.Name,
-            Email = user.Email,
-            Role = user.Role,
-            Token = token,
-            RefreshToken = refreshToken
-        });
+        return Ok(new AuthResponseDto(accessToken, refreshToken, user.Id, user.Name, user.Email, user.Role));
     }
 
     [HttpPost("refresh")]
-    public async Task<IActionResult> Refresh(RefreshTokenDto dto)
+    public async Task<IActionResult> Refresh([FromBody] RefreshTokenDto dto)
     {
-        var user = await _db.Users
-            .FirstOrDefaultAsync(u => u.RefreshToken == dto.RefreshToken);
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.RefreshToken == dto.RefreshToken);
+        if (user == null || user.RefreshTokenExpiry < DateTime.UtcNow)
+            return Unauthorized(new { title = "Invalid or expired refresh token" });
 
-        if (user == null)
-            return Unauthorized(new { message = "Invalid refresh token." });
-
-        if (!user.Active)
-            return Unauthorized(new { message = "Your account is inactive." });
-
-        var token = _jwtService.GenerateToken(user);
-        var refreshToken = _jwtService.GenerateRefreshToken();
-
+        var (accessToken, refreshToken) = GenerateTokens(user);
         user.RefreshToken = refreshToken;
-
+        user.RefreshTokenExpiry = DateTime.UtcNow.AddDays(7);
         await _db.SaveChangesAsync();
 
-        return Ok(new AuthResponseDto
-        {
-            Id = user.Id,
-            Name = user.Name,
-            Email = user.Email,
-            Role = user.Role,
-            Token = token,
-            RefreshToken = refreshToken
-        });
+        return Ok(new { accessToken, refreshToken });
     }
 
     [HttpPost("logout")]
-    public async Task<IActionResult> Logout(LogoutDto dto)
+    public async Task<IActionResult> Logout([FromBody] LogoutDto dto)
     {
-        var user = await _db.Users
-            .FirstOrDefaultAsync(u => u.RefreshToken == dto.RefreshToken);
-
+        var user = await _db.Users.FirstOrDefaultAsync(u => u.RefreshToken == dto.RefreshToken);
         if (user != null)
         {
             user.RefreshToken = null;
+            user.RefreshTokenExpiry = null;
             await _db.SaveChangesAsync();
         }
+        return NoContent();
+    }
 
-        return Ok(new { message = "Logged out successfully." });
+    private (string AccessToken, string RefreshToken) GenerateTokens(User user)
+    {
+        var accessToken = GenerateAccessToken(user);
+        var refreshToken = GenerateRefreshToken();
+        return (accessToken, refreshToken);
+    }
+
+    private string GenerateAccessToken(User user)
+    {
+        var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_config["Jwt:Key"] ?? "DefaultSecretKey32CharactersLong!!"));
+        var creds = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
+        var claims = new[]
+        {
+            new Claim(ClaimTypes.NameIdentifier, user.Id.ToString()),
+            new Claim(ClaimTypes.Name, user.Name),
+            new Claim(ClaimTypes.Email, user.Email),
+            new Claim(ClaimTypes.Role, user.Role),
+        };
+        var expiry = DateTime.UtcNow.AddMinutes(int.Parse(_config["Jwt:AccessTokenExpiryMinutes"] ?? "15"));
+        var token = new JwtSecurityToken(claims: claims, expires: expiry, signingCredentials: creds);
+        return new JwtSecurityTokenHandler().WriteToken(token);
+    }
+
+    private string GenerateRefreshToken()
+    {
+        var bytes = new byte[32];
+        using var rng = RandomNumberGenerator.Create();
+        rng.GetBytes(bytes);
+        return Convert.ToBase64String(bytes);
     }
 }

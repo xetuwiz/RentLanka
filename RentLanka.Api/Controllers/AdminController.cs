@@ -1,11 +1,12 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RentLanka.Api.Services;
-using System.Threading.Tasks;
 
 namespace RentLanka.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "ADMIN")]
 public class AdminController : ControllerBase
 {
     private readonly IAdminService _adminService;
@@ -16,37 +17,28 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("dashboard")]
-    public async Task<IActionResult> GetDashboard()
-    {
-        var counts = await _adminService.GetDashboardCountsAsync();
-        return Ok(counts);
-    }
+    public async Task<IActionResult> GetDashboard() => Ok(await _adminService.GetDashboardAsync());
 
     [HttpGet("users")]
-    public async Task<IActionResult> GetUsers()
-    {
-        var users = await _adminService.GetAllUsersAsync();
-        return Ok(users);
-    }
+    public async Task<IActionResult> GetUsers() => Ok(await _adminService.GetUsersAsync());
 
     [HttpPatch("users/{id}/status")]
     public async Task<IActionResult> ToggleUserStatus(int id)
     {
-        await _adminService.ToggleUserStatusAsync(id);
-        return NoContent();
+        try
+        {
+            await _adminService.ToggleUserStatusAsync(id);
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { title = "User not found" });
+        }
     }
 
     [HttpGet("vehicles")]
-    public async Task<IActionResult> GetVehicles()
-    {
-        var vehicles = await _adminService.GetAllVehiclesAsync();
-        return Ok(vehicles);
-    }
+    public async Task<IActionResult> GetVehicles() => Ok(await _adminService.GetVehiclesAsync());
 
     [HttpGet("bookings")]
-    public async Task<IActionResult> GetBookings()
-    {
-        var bookings = await _adminService.GetAllBookingsAsync();
-        return Ok(bookings);
-    }
+    public async Task<IActionResult> GetBookings() => Ok(await _adminService.GetBookingsAsync());
 }

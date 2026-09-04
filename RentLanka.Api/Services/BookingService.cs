@@ -14,42 +14,22 @@ public class BookingService : IBookingService
         _db = db;
     }
 
-    public async Task<BookingResponseDto> CreateAsync(
-        BookingRequestDto dto,
-        int customerId)
+    public async Task<BookingResponseDto> CreateAsync(BookingRequestDto dto, int customerId)
     {
-        if (dto.StartDate.Date < DateTime.UtcNow.Date)
-            throw new ArgumentException("Start date cannot be in the past.");
+        var vehicle = await _db.Vehicles.FindAsync(dto.VehicleId);
+        if (vehicle == null) throw new Exception("Vehicle not found");
+        if (vehicle.Status != "AVAILABLE") throw new Exception("Vehicle is not available");
 
-        if (dto.EndDate.Date <= dto.StartDate.Date)
-            throw new ArgumentException("End date must be after start date.");
-
-        var vehicle = await _db.Vehicles
-            .FirstOrDefaultAsync(v => v.Id == dto.VehicleId);
-
-        if (vehicle == null)
-            throw new KeyNotFoundException("Vehicle not found.");
-
-        if (vehicle.Status != "AVAILABLE")
-            throw new ArgumentException("Vehicle is not currently available.");
-
+        // Check for conflicting bookings
         var conflicting = await _db.Bookings
             .Where(b => b.VehicleId == dto.VehicleId)
             .Where(b => b.Status == "PENDING" || b.Status == "ACCEPTED")
-            .Where(b =>
-                b.StartDate < dto.EndDate &&
-                b.EndDate > dto.StartDate)
+            .Where(b => b.StartDate < dto.EndDate && b.EndDate > dto.StartDate)
             .AnyAsync();
+        if (conflicting) throw new Exception("Vehicle already booked for those dates");
 
-        if (conflicting)
-            throw new ArgumentException(
-                "This vehicle is already booked for the selected dates.");
-
-        var days = (dto.EndDate.Date - dto.StartDate.Date).Days;
-
-        if (days <= 0)
-            days = 1;
-
+        var days = (dto.EndDate - dto.StartDate).Days;
+        if (days <= 0) throw new Exception("End date must be after start date");
         var total = vehicle.PricePerDay * days;
 
         var booking = new Booking
@@ -64,79 +44,56 @@ public class BookingService : IBookingService
             UpdatedAt = DateTime.UtcNow
         };
 
+        // Mark vehicle as booked
+        vehicle.Status = "BOOKED";
         _db.Bookings.Add(booking);
-
         await _db.SaveChangesAsync();
 
-        return await MapBookingAsync(booking.Id);
+        return await GetByIdAsync(booking.Id);
     }
 
-    public async Task<IEnumerable<BookingResponseDto>>
-        GetCustomerBookingsAsync(int customerId)
+    public async Task<IEnumerable<BookingResponseDto>> GetCustomerBookingsAsync(int customerId)
     {
-        var bookings = await _db.Bookings
-            .Include(b => b.Vehicle)
+        return await _db.Bookings
             .Where(b => b.CustomerId == customerId)
-            .OrderByDescending(b => b.CreatedAt)
+            .Include(b => b.Vehicle)
+            .Include(b => b.Customer)
+            .Select(b => MapToDto(b))
             .ToListAsync();
-
-        return bookings.Select(b => new BookingResponseDto
-        {
-            Id = b.Id,
-            VehicleId = b.VehicleId,
-            VehicleName = b.Vehicle.Name,
-            StartDate = b.StartDate,
-            EndDate = b.EndDate,
-            TotalPrice = b.TotalPrice,
-            Status = b.Status,
-            CreatedAt = b.CreatedAt
-        });
     }
 
-    public async Task<BookingResponseDto>
-        GetBookingByIdAsync(int id, int userId)
+    public async Task<IEnumerable<BookingResponseDto>> GetOwnerBookingsAsync(int ownerId)
+    {
+        return await _db.Bookings
+            .Where(b => b.Vehicle.OwnerId == ownerId)
+            .Include(b => b.Vehicle)
+            .Include(b => b.Customer)
+            .Select(b => MapToDto(b))
+            .ToListAsync();
+    }
+
+    public async Task<BookingResponseDto> GetByIdAsync(int id)
     {
         var booking = await _db.Bookings
             .Include(b => b.Vehicle)
-            .FirstOrDefaultAsync(b =>
-                b.Id == id &&
-                b.CustomerId == userId);
-
-        if (booking == null)
-            throw new KeyNotFoundException("Booking not found.");
-
-        return new BookingResponseDto
-        {
-            Id = booking.Id,
-            VehicleId = booking.VehicleId,
-            VehicleName = booking.Vehicle.Name,
-            StartDate = booking.StartDate,
-            EndDate = booking.EndDate,
-            TotalPrice = booking.TotalPrice,
-            Status = booking.Status,
-            CreatedAt = booking.CreatedAt
-        };
+            .Include(b => b.Customer)
+            .FirstOrDefaultAsync(b => b.Id == id);
+        if (booking == null) throw new KeyNotFoundException("Booking not found");
+        return MapToDto(booking);
     }
 
     public async Task CancelAsync(int id, int customerId)
     {
-        var booking = await _db.Bookings
-            .FirstOrDefaultAsync(b =>
-                b.Id == id &&
-                b.CustomerId == customerId);
-
-        if (booking == null)
-            throw new KeyNotFoundException("Booking not found.");
-
-        if (booking.Status == "CANCELLED")
-            throw new ArgumentException("Booking is already cancelled.");
-
-        if (booking.Status == "REJECTED")
-            throw new ArgumentException("Rejected bookings cannot be cancelled.");
+        var booking = await _db.Bookings.FindAsync(id);
+        if (booking == null) throw new KeyNotFoundException("Booking not found");
+        if (booking.CustomerId != customerId) throw new UnauthorizedAccessException("You are not the customer of this booking");
+        if (booking.Status != "PENDING") throw new Exception("Only pending bookings can be cancelled");
 
         booking.Status = "CANCELLED";
         booking.UpdatedAt = DateTime.UtcNow;
-
+        // Make vehicle available again
+        var vehicle = await _db.Vehicles.FindAsync(booking.VehicleId);
+        if (vehicle != null) vehicle.Status = "AVAILABLE";
         await _db.SaveChangesAsync();
     }
 
@@ -144,19 +101,12 @@ public class BookingService : IBookingService
     {
         var booking = await _db.Bookings
             .Include(b => b.Vehicle)
-            .FirstOrDefaultAsync(b =>
-                b.Id == id &&
-                b.Vehicle.OwnerId == ownerId);
-
-        if (booking == null)
-            throw new KeyNotFoundException("Booking not found.");
-
-        if (booking.Status != "PENDING")
-            throw new ArgumentException("Only pending bookings can be accepted.");
+            .FirstOrDefaultAsync(b => b.Id == id);
+        if (booking == null) throw new KeyNotFoundException("Booking not found");
+        if (booking.Vehicle.OwnerId != ownerId) throw new UnauthorizedAccessException("You are not the owner of this vehicle");
 
         booking.Status = "ACCEPTED";
         booking.UpdatedAt = DateTime.UtcNow;
-
         await _db.SaveChangesAsync();
     }
 
@@ -164,38 +114,30 @@ public class BookingService : IBookingService
     {
         var booking = await _db.Bookings
             .Include(b => b.Vehicle)
-            .FirstOrDefaultAsync(b =>
-                b.Id == id &&
-                b.Vehicle.OwnerId == ownerId);
-
-        if (booking == null)
-            throw new KeyNotFoundException("Booking not found.");
-
-        if (booking.Status != "PENDING")
-            throw new ArgumentException("Only pending bookings can be rejected.");
+            .FirstOrDefaultAsync(b => b.Id == id);
+        if (booking == null) throw new KeyNotFoundException("Booking not found");
+        if (booking.Vehicle.OwnerId != ownerId) throw new UnauthorizedAccessException("You are not the owner of this vehicle");
 
         booking.Status = "REJECTED";
         booking.UpdatedAt = DateTime.UtcNow;
-
+        // Make vehicle available again
+        var vehicle = await _db.Vehicles.FindAsync(booking.VehicleId);
+        if (vehicle != null) vehicle.Status = "AVAILABLE";
         await _db.SaveChangesAsync();
     }
 
-    private async Task<BookingResponseDto> MapBookingAsync(int id)
+    private BookingResponseDto MapToDto(Booking b)
     {
-        var booking = await _db.Bookings
-            .Include(b => b.Vehicle)
-            .FirstAsync(b => b.Id == id);
-
-        return new BookingResponseDto
-        {
-            Id = booking.Id,
-            VehicleId = booking.VehicleId,
-            VehicleName = booking.Vehicle.Name,
-            StartDate = booking.StartDate,
-            EndDate = booking.EndDate,
-            TotalPrice = booking.TotalPrice,
-            Status = booking.Status,
-            CreatedAt = booking.CreatedAt
-        };
+        return new BookingResponseDto(
+            b.Id,
+            b.VehicleId,
+            b.Vehicle?.Brand + " " + b.Vehicle?.Model ?? "Unknown",
+            b.CustomerId,
+            b.Customer?.Name ?? "Unknown",
+            b.StartDate,
+            b.EndDate,
+            b.TotalPrice,
+            b.Status
+        );
     }
 }

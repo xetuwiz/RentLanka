@@ -1,37 +1,49 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using Microsoft.EntityFrameworkCore;
+using RentLanka.Api.Data;
+using RentLanka.Api.Models;
 
 namespace RentLanka.Api.Services;
 
 public class AdminService : IAdminService
 {
-    public async Task<object> GetDashboardCountsAsync()
+    private readonly AppDbContext _db;
+
+    public AdminService(AppDbContext db)
     {
-        // TODO: Implement actual logic retrieving data from DbContext
-        return await Task.FromResult(new { Users = 0, Vehicles = 0, Bookings = 0 });
+        _db = db;
     }
 
-    public async Task<IEnumerable<object>> GetAllUsersAsync()
+    public async Task<object> GetDashboardAsync()
     {
-        // TODO: Implement actual logic
-        return await Task.FromResult(new List<object>());
+        var userCount = await _db.Users.CountAsync();
+        var vehicleCount = await _db.Vehicles.CountAsync();
+        var bookingCount = await _db.Bookings.CountAsync();
+        return new { UserCount = userCount, VehicleCount = vehicleCount, BookingCount = bookingCount };
     }
 
-    public async Task ToggleUserStatusAsync(int id)
+    public async Task<IEnumerable<User>> GetUsersAsync()
     {
-        // TODO: Implement actual logic to activate/deactivate user
-        await Task.CompletedTask;
+        return await _db.Users.ToListAsync();
     }
 
-    public async Task<IEnumerable<object>> GetAllVehiclesAsync()
+    public async Task ToggleUserStatusAsync(int userId)
     {
-        // TODO: Implement actual logic
-        return await Task.FromResult(new List<object>());
+        var user = await _db.Users.FindAsync(userId);
+        if (user == null) throw new KeyNotFoundException("User not found");
+        user.Active = !user.Active;
+        await _db.SaveChangesAsync();
     }
 
-    public async Task<IEnumerable<object>> GetAllBookingsAsync()
+    public async Task<IEnumerable<Vehicle>> GetVehiclesAsync()
     {
-        // TODO: Implement actual logic
-        return await Task.FromResult(new List<object>());
+        return await _db.Vehicles.Include(v => v.Owner).ToListAsync();
+    }
+
+    public async Task<IEnumerable<Booking>> GetBookingsAsync()
+    {
+        return await _db.Bookings
+            .Include(b => b.Customer)
+            .Include(b => b.Vehicle)
+            .ToListAsync();
     }
 }

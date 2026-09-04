@@ -1,10 +1,13 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
+using RentLanka.Api.Services;
 
 namespace RentLanka.Api.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize(Roles = "OWNER,ADMIN")]
 public class OwnerController : ControllerBase
 {
     private readonly IVehicleService _vehicleService;
@@ -16,31 +19,77 @@ public class OwnerController : ControllerBase
         _bookingService = bookingService;
     }
 
+    private int GetUserId() => int.Parse(User.FindFirst(ClaimTypes.NameIdentifier)!.Value);
+
     [HttpGet("vehicles")]
-    public async Task<IActionResult> GetOwnerVehicles()
+    public async Task<IActionResult> GetMyVehicles()
     {
-        var vehicles = await _vehicleService.GetOwnerVehiclesAsync();
-        return Ok(vehicles);
+        try
+        {
+            var vehicles = await _vehicleService.GetOwnerVehiclesAsync(GetUserId());
+            return Ok(vehicles);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { title = ex.Message });
+        }
     }
 
     [HttpGet("bookings")]
-    public async Task<IActionResult> GetOwnerBookings()
+    public async Task<IActionResult> GetMyBookings()
     {
-        var bookings = await _bookingService.GetOwnerBookingsAsync();
-        return Ok(bookings);
+        try
+        {
+            var bookings = await _bookingService.GetOwnerBookingsAsync(GetUserId());
+            return Ok(bookings);
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { title = ex.Message });
+        }
     }
 
     [HttpPatch("bookings/{id}/accept")]
     public async Task<IActionResult> AcceptBooking(int id)
     {
-        await _bookingService.AcceptAsync(id);
-        return NoContent();
+        try
+        {
+            await _bookingService.AcceptAsync(id, GetUserId());
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { title = "Booking not found" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { title = ex.Message });
+        }
     }
 
     [HttpPatch("bookings/{id}/reject")]
     public async Task<IActionResult> RejectBooking(int id)
     {
-        await _bookingService.RejectAsync(id);
-        return NoContent();
+        try
+        {
+            await _bookingService.RejectAsync(id, GetUserId());
+            return NoContent();
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound(new { title = "Booking not found" });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Forbid(ex.Message);
+        }
+        catch (Exception ex)
+        {
+            return BadRequest(new { title = ex.Message });
+        }
     }
 }

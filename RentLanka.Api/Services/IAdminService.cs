@@ -1,13 +1,12 @@
-using System.Collections.Generic;
-using System.Threading.Tasks;
+using RentLanka.Api.Models;
 
 namespace RentLanka.Api.Services;
 
 public interface IAdminService
 {
-    Task<object> GetDashboardCountsAsync();
-    Task<IEnumerable<object>> GetAllUsersAsync();
-    Task ToggleUserStatusAsync(int id);
-    Task<IEnumerable<object>> GetAllVehiclesAsync();
-    Task<IEnumerable<object>> GetAllBookingsAsync();
+    Task<object> GetDashboardAsync();
+    Task<IEnumerable<User>> GetUsersAsync();
+    Task ToggleUserStatusAsync(int userId);
+    Task<IEnumerable<Vehicle>> GetVehiclesAsync();
+    Task<IEnumerable<Booking>> GetBookingsAsync();
 }

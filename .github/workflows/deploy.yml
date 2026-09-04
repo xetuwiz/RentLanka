@@ -1,0 +1,80 @@
+name: Deploy
+
+# -------------------------------------------------------
+# RentLanka CI/CD – Render (backend) + Vercel (frontend)
+# -------------------------------------------------------
+# Backend:  Render Web Service – auto-deploys from the
+#           RentLanka.Api/ folder on push to main.
+#           The job below just runs a build to catch
+#           errors early in CI.
+#
+# Frontend: Vercel – auto-deploys via GitHub integration.
+#           The job below runs npm build to catch errors
+#           early. Extend with a deploy hook if needed.
+# -------------------------------------------------------
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # ── Backend build check ──────────────────────────────
+  build-api:
+    name: Build .NET API
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: RentLanka.Api
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore packages
+        run: dotnet restore
+
+      - name: Build (Release)
+        run: dotnet build --no-restore -c Release
+
+      # Optional: trigger Render deploy hook manually
+      # - name: Trigger Render deploy
+      #   run: curl -X POST ${{ secrets.RENDER_DEPLOY_HOOK }}
+
+  # ── Frontend build check ─────────────────────────────
+  build-frontend:
+    name: Build React Frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: rentlanka-app
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: rentlanka-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build (production)
+        run: npm run build
+        env:
+          # Vercel injects this automatically via project settings.
+          # Set here only for the CI build check.
+          VITE_API_URL: ${{ secrets.VITE_API_URL }}
+
+      # Vercel deploys automatically on push via GitHub integration.
+      # Uncomment to use a manual deploy hook instead:
+      # - name: Trigger Vercel deploy
+      #   run: curl -X POST ${{ secrets.VERCEL_DEPLOY_HOOK }}
