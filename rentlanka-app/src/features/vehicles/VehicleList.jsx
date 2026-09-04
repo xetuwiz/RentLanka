@@ -49,7 +49,7 @@ export const VehicleList = () => {
                             <SpatialUnitSearch
                                 onSelect={setSelectedLocation}
                                 selectedUnit={selectedLocation}
-                                placeholder="Where are you going?"
+                                placeholder="Search locations..."
                             />
                         </div>
                         <div className="flex-1 text-left">

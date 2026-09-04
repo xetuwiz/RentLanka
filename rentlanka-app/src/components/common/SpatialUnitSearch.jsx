@@ -4,7 +4,7 @@ import { useSpatialSearch } from '../../hooks/useSpatialSearch';
 export const SpatialUnitSearch = ({ onSelect, selectedUnit, placeholder = "Search locations..." }) => {
     const [searchTerm, setSearchTerm] = useState(selectedUnit?.name || '');
     const [isOpen, setIsOpen] = useState(false);
-    const { results, isLoading } = useSpatialSearch(searchTerm);
+    const { data: results = [], isLoading } = useSpatialSearch(searchTerm);
     const wrapperRef = useRef(null);
 
     useEffect(() => {
