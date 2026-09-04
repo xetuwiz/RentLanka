@@ -54,22 +54,14 @@ public class BookingService : IBookingService
 
     public async Task<IEnumerable<BookingResponseDto>> GetCustomerBookingsAsync(int customerId)
     {
-        return await _db.Bookings
-            .Where(b => b.CustomerId == customerId)
-            .Include(b => b.Vehicle)
-            .Include(b => b.Customer)
-            .Select(b => MapToDto(b))
-            .ToListAsync();
+        var bookings = await _db.Bookings.Where(b => b.CustomerId == customerId).Include(b => b.Vehicle).Include(b => b.Customer).ToListAsync();
+        return bookings.Select(b => MapToDto(b));
     }
 
     public async Task<IEnumerable<BookingResponseDto>> GetOwnerBookingsAsync(int ownerId)
     {
-        return await _db.Bookings
-            .Where(b => b.Vehicle.OwnerId == ownerId)
-            .Include(b => b.Vehicle)
-            .Include(b => b.Customer)
-            .Select(b => MapToDto(b))
-            .ToListAsync();
+        var bookings = await _db.Bookings.Where(b => b.Vehicle.OwnerId == ownerId).Include(b => b.Vehicle).Include(b => b.Customer).ToListAsync();
+        return bookings.Select(b => MapToDto(b));
     }
 
     public async Task<BookingResponseDto> GetByIdAsync(int id)
@@ -141,3 +133,4 @@ public class BookingService : IBookingService
         );
     }
 }
+
