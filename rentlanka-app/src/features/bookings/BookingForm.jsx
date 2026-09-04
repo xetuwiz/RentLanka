@@ -8,7 +8,7 @@ import toast from "react-hot-toast";
 import { useAuth } from "../../context/AuthContext";
 
 export const BookingForm = () => {
-    const { vehicleId } = useParams();
+    const { id: vehicleId } = useParams();
     const navigate = useNavigate();
     const { isAuthenticated } = useAuth();
     const [startDate, setStartDate] = useState(null);
