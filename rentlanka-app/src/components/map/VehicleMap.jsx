@@ -41,10 +41,10 @@ export const VehicleMap = ({ vehicles = [], center, zoom = 8 }) => {
                             </p>
                             <p className="text-xs text-gray-500 mb-2">{vehicle.vehicleType}</p>
                             <Link
-                                to={`/vehicles/${vehicle.id}`}
+                                to={`/book/${vehicle.id}`}
                                 className="text-blue-600 hover:underline text-xs font-medium"
                             >
-                                View details →
+                                Book Now →
                             </Link>
                         </div>
                     </Popup>
@@ -53,3 +53,6 @@ export const VehicleMap = ({ vehicles = [], center, zoom = 8 }) => {
         </MapContainer>
     );
 };
+
+
+
