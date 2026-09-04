@@ -5,7 +5,7 @@ import { SpatialUnitSearch } from "../common/SpatialUnitSearch";
 import toast from "react-hot-toast";
 
 export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess }) => {
-    const { register, handleSubmit, reset, setValue, formState: { errors } } = useForm();
+    const { register, handleSubmit, reset, setValue, setError, formState: { errors } } = useForm();
     const [submitting, setSubmitting] = useState(false);
     const [selectedLocation, setSelectedLocation] = useState(null);
 
@@ -72,7 +72,16 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
             onSuccess();
             onClose();
         } catch (error) {
-            toast.error(error.response?.data?.title || "Operation failed");
+            const serverErrors = error.response?.data?.errors;
+            if (serverErrors) {
+                Object.keys(serverErrors).forEach(key => {
+                    const fieldName = key.charAt(0).toLowerCase() + key.slice(1);
+                    setError(fieldName, { type: 'server', message: serverErrors[key][0] });
+                });
+                toast.error("Please fix the validation errors.");
+            } else {
+                toast.error(error.response?.data?.title || "Operation failed");
+            }
         } finally {
             setSubmitting(false);
         }
@@ -97,15 +106,18 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-1">Brand</label>
-                                <input {...register("brand", { required: true })} className="input-field" placeholder="Toyota" />
+                                <input {...register("brand", { required: "Brand is required" })} className="input-field" placeholder="Toyota" />
+                                {errors.brand && <p className="mt-1 text-xs text-red-400">{errors.brand.message}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-1">Model</label>
-                                <input {...register("model", { required: true })} className="input-field" placeholder="Prius" />
+                                <input {...register("model", { required: "Model is required" })} className="input-field" placeholder="Prius" />
+                                {errors.model && <p className="mt-1 text-xs text-red-400">{errors.model.message}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-1">Year</label>
                                 <input type="number" {...register("year")} className="input-field" placeholder="2020" />
+                                {errors.year && <p className="mt-1 text-xs text-red-400">{errors.year.message}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-1">Type</label>
@@ -115,14 +127,17 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
                                     <option value="SUV">SUV</option>
                                     <option value="BIKE">Bike</option>
                                 </select>
+                                {errors.vehicleType && <p className="mt-1 text-xs text-red-400">{errors.vehicleType.message}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-1">Price per day (LKR)</label>
-                                <input type="number" step="0.01" {...register("pricePerDay", { required: true, min: 1 })} className="input-field" placeholder="15000" />
+                                <input type="number" step="0.01" {...register("pricePerDay", { required: "Price is required", min: { value: 1, message: "Price must be greater than 0" } })} className="input-field" placeholder="15000" />
+                                {errors.pricePerDay && <p className="mt-1 text-xs text-red-400">{errors.pricePerDay.message}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-1">Seats</label>
                                 <input type="number" {...register("seats")} className="input-field" />
+                                {errors.seats && <p className="mt-1 text-xs text-red-400">{errors.seats.message}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-1">Transmission</label>
@@ -130,6 +145,7 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
                                     <option value="Automatic">Automatic</option>
                                     <option value="Manual">Manual</option>
                                 </select>
+                                {errors.transmission && <p className="mt-1 text-xs text-red-400">{errors.transmission.message}</p>}
                             </div>
                             <div>
                                 <label className="block text-sm font-medium text-slate-400 mb-1">Fuel Type</label>
@@ -139,6 +155,7 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
                                     <option value="Hybrid">Hybrid</option>
                                     <option value="Electric">Electric</option>
                                 </select>
+                                {errors.fuelType && <p className="mt-1 text-xs text-red-400">{errors.fuelType.message}</p>}
                             </div>
                         </div>
 
@@ -149,11 +166,13 @@ export const VehicleFormModal = ({ isOpen, onClose, vehicle = null, onSuccess })
                                 onSelect={handleLocationSelect}
                                 placeholder="Search District or Division..."
                             />
+                            {errors.spatialUnitId && <p className="mt-1 text-xs text-red-400">{errors.spatialUnitId.message}</p>}
                         </div>
 
                         <div>
                             <label className="block text-sm font-medium text-slate-400 mb-1">Description</label>
                             <textarea {...register("description")} className="input-field h-24 resize-none" placeholder="Vehicle details..."></textarea>
+                            {errors.description && <p className="mt-1 text-xs text-red-400">{errors.description.message}</p>}
                         </div>
                     </form>
                 </div>
