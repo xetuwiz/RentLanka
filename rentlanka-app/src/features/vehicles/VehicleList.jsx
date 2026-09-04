@@ -18,7 +18,7 @@ export const VehicleList = () => {
         queryFn: () => vehiclesApi.search({
             q: debouncedSearch,
             spatialUnitId: selectedLocation?.id,
-            type: typeFilter
+            vehicleType: typeFilter
         })
     });
 
@@ -134,3 +134,4 @@ export const VehicleList = () => {
         </div>
     );
 };
+
