@@ -131,6 +131,9 @@ public class VehicleService : IVehicleService
         if (vehicle.OwnerId != userId && requestingUser?.Role != "ADMIN")
             throw new UnauthorizedAccessException("You do not own this vehicle");
 
+        var bookings = await _db.Bookings.Where(b => b.VehicleId == id).ToListAsync();
+        _db.Bookings.RemoveRange(bookings);
+
         _db.Vehicles.Remove(vehicle);
         await _db.SaveChangesAsync();
     }
@@ -186,4 +189,6 @@ public class VehicleService : IVehicleService
         return R * 2 * Math.Atan2(Math.Sqrt(a), Math.Sqrt(1 - a));
     }
 }
+
+
 
