@@ -53,7 +53,7 @@ builder.Services.AddCors(options =>
     options.AddPolicy("Production", policy =>
         policy.WithOrigins(
                 builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
-                ?? new[] { "https://rentlanka-app.vercel.app", "https://rentlanka.vercel.app", "https://app.xetuwiz.de" })
+                ?? new[] { "https://rentlanka-app.vercel.app", "https://rentlanka-app.vercel.app", "https://rentlanka.vercel.app", "https://app.xetuwiz.de" })
               .AllowAnyMethod()
               .AllowAnyHeader()
               .AllowCredentials());
@@ -182,3 +182,4 @@ using (var scope = app.Services.CreateScope())
 }
 
 app.Run();
+
