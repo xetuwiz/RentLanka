@@ -58,6 +58,16 @@ public class VehiclesController : ControllerBase
         await _vehicleService.UpdateStatusAsync(id, status, GetUserId());
         return NoContent();
     }
+
+    [HttpDelete("{id:int}")]
+    [Authorize(Roles = "OWNER,ADMIN")]
+    public async Task<IActionResult> Delete(int id)
+    {
+        try { await _vehicleService.DeleteAsync(id, GetUserId()); return NoContent(); }
+        catch (KeyNotFoundException) { return NotFound(); }
+        catch (UnauthorizedAccessException) { return Forbid(); }
+    }
 }
+
 
 

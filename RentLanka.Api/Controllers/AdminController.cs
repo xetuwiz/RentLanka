@@ -41,6 +41,21 @@ public class AdminController : ControllerBase
 
     [HttpGet("bookings")]
     public async Task<IActionResult> GetBookings() => Ok(await _adminService.GetBookingsAsync());
+
+    [HttpDelete("users/{id:int}")]
+    public async Task<IActionResult> DeleteUser(int id)
+    {
+        try { await _adminService.DeleteUserAsync(id); return NoContent(); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
+
+    [HttpDelete("bookings/{id:int}")]
+    public async Task<IActionResult> DeleteBooking(int id)
+    {
+        try { await _adminService.DeleteBookingAsync(id); return NoContent(); }
+        catch (KeyNotFoundException) { return NotFound(); }
+    }
 }
+
 
 

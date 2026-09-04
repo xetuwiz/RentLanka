@@ -38,6 +38,16 @@ public class AdminService : IAdminService
     {
         var user = await _db.Users.FindAsync(userId);
         if (user == null) throw new KeyNotFoundException("User not found");
+
+        var customerBookings = await _db.Bookings.Where(b => b.CustomerId == userId).ToListAsync();
+        _db.Bookings.RemoveRange(customerBookings);
+
+        var ownerBookings = await _db.Bookings.Where(b => b.Vehicle.OwnerId == userId).ToListAsync();
+        _db.Bookings.RemoveRange(ownerBookings);
+
+        var vehicles = await _db.Vehicles.Where(v => v.OwnerId == userId).ToListAsync();
+        _db.Vehicles.RemoveRange(vehicles);
+
         _db.Users.Remove(user);
         await _db.SaveChangesAsync();
     }
@@ -63,5 +73,6 @@ public class AdminService : IAdminService
             .ToListAsync();
     }
 }
+
 
 
