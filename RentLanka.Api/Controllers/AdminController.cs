@@ -43,3 +43,4 @@ public class AdminController : ControllerBase
     public async Task<IActionResult> GetBookings() => Ok(await _adminService.GetBookingsAsync());
 }
 
+
