@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect } from "react";
 import { authApi } from "../api/endpoints";
+import toast from "react-hot-toast";
 
 const AuthContext = createContext();
 
@@ -16,26 +17,36 @@ export const AuthProvider = ({ children }) => {
         setLoading(false);
     }, []);
 
-    const login = async (email, password) => {
-        const res = await authApi.login({ email, password });
-        const { accessToken, refreshToken, userId, name, email: userEmail, role } = res.data;
-        const userData = { id: userId, name, email: userEmail, role };
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("refreshToken", refreshToken);
-        localStorage.setItem("user", JSON.stringify(userData));
-        setUser(userData);
-        return res;
+    const login = async (data) => {
+        try {
+            const res = await authApi.login(data);
+            const { accessToken, refreshToken, userId, name, email: userEmail, role } = res.data;
+            const userData = { id: userId, name, email: userEmail, role };
+            localStorage.setItem("accessToken", accessToken);
+            localStorage.setItem("refreshToken", refreshToken);
+            localStorage.setItem("user", JSON.stringify(userData));
+            setUser(userData);
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.title || "Login failed");
+            return false;
+        }
     };
 
-    const register = async (name, email, password, phone, role) => {
-        const res = await authApi.register({ name, email, password, phone, role });
-        const { accessToken, refreshToken, userId, name: userName, email: userEmail, role: userRole } = res.data;
-        const userData = { id: userId, name: userName, email: userEmail, role: userRole };
-        localStorage.setItem("accessToken", accessToken);
-        localStorage.setItem("refreshToken", refreshToken);
-        localStorage.setItem("user", JSON.stringify(userData));
-        setUser(userData);
-        return res;
+    const register = async (data) => {
+        try {
+            const res = await authApi.register(data);
+            const { accessToken, refreshToken, userId, name: userName, email: userEmail, role: userRole } = res.data;
+            const userData = { id: userId, name: userName, email: userEmail, role: userRole };
+            localStorage.setItem("accessToken", accessToken);
+            localStorage.setItem("refreshToken", refreshToken);
+            localStorage.setItem("user", JSON.stringify(userData));
+            setUser(userData);
+            return true;
+        } catch (error) {
+            toast.error(error.response?.data?.title || "Registration failed");
+            return false;
+        }
     };
 
     const logout = async () => {
