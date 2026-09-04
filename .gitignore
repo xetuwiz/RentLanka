@@ -120,3 +120,8 @@ docker-compose.override.yml
 *.tfstate
 *.tfstate.*
 .terraform/
+# Ignore local dotnet paths
+.dotnet_home/
+.local/
+Library/
+
